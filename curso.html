@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Preceptora · Curso</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* ── CONTROLES ── */
+    .curso-controles {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 16px 10px;
+      flex-wrap: wrap;
+    }
+    .curso-select {
+      padding: 9px 14px;
+      border: 2px solid var(--primary);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      cursor: pointer;
+    }
+    .vista-toggles {
+      display: flex;
+      gap: 6px;
+      margin-left: 8px;
+      flex-wrap: wrap;
+    }
+    .vista-toggle {
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 2px solid var(--border);
+      background: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .vista-toggle:hover { border-color: var(--primary); color: var(--primary); }
+    .vista-toggle.activo-recursa  { border-color: var(--warning); background: #fff8f0; color: var(--warning); }
+    .vista-toggle.activo-intens   { border-color: #946800;        background: #fffde7; color: #946800; }
+    .vista-toggle img { width: 14px; height: 14px; object-fit: contain; }
+
+    .btn-imprimir-curso {
+      margin-left: auto;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #e3f2fd;
+      color: var(--primary);
+      transition: opacity 0.2s;
+    }
+    .btn-imprimir-curso:hover { opacity: 0.85; }
+
+    /* ── RESUMEN ── */
+    .curso-resumen {
+      display: none;
+      gap: 8px;
+      padding: 0 16px 12px;
+      flex-wrap: wrap;
+    }
+    .resumen-chip {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .resumen-chip strong { color: var(--text); }
+
+    /* ── TABLA ── */
+    .curso-wrap {
+      overflow-x: auto;
+      padding: 0 16px 32px;
+    }
+    .curso-tabla {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 600px;
+    }
+
+    /* Header principal de sección */
+    .th-banner {
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .th-banner-azul    { background: #e8f0fe; color: #1a56db; }
+    .th-banner-naranja { background: #fff3e0; color: #c05600; }
+    .th-banner-amarillo{ background: #fffde7; color: #946800; }
+
+    /* Header de campos */
+    .curso-tabla thead tr.th-campos th {
+      background: #fafafa;
+      padding: 7px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 2px solid var(--border);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .curso-tabla thead tr.th-campos th:first-child { text-align: left; }
+
+    /* Nombre de materia como sub-header */
+    .th-mat {
+      background: #f0f4ff;
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 11px;
+      padding: 5px 6px !important;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .th-mat-recursa  { background: #fff8f0 !important; color: var(--warning) !important; }
+    .th-mat-intens   { background: #fffef5 !important; color: #946800 !important; }
+
+    /* Filas */
+    .curso-tabla tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+    .curso-tabla tbody tr:hover { background: #f5f8ff; }
+    .curso-tabla tbody tr:last-child { border-bottom: none; }
+
+    .curso-tabla td {
+      padding: 8px 7px;
+      vertical-align: middle;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .curso-tabla td:first-child { text-align: left; min-width: 150px; }
+
+    /* Nombre */
+    .nombre-link {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .nombre-link:hover { color: var(--primary); }
+
+    /* Asistencia — solo % */
+    .pct-alta   { color: var(--success); font-weight: 800; font-size: 14px; }
+    .pct-media  { color: var(--warning); font-weight: 800; font-size: 14px; }
+    .pct-baja   { color: var(--danger);  font-weight: 800; font-size: 14px; }
+
+    /* Celda vacía */
+    .celda-na {
+      color: #d1d5db;
+      font-size: 12px;
+      font-style: italic;
+    }
+
+    /* Tag "No cursa" */
+    .tag-no-cursa {
+      display: inline-block;
+      background: #f3f4f6;
+      color: #9ca3af;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    /* Tag año de recursa */
+    .tag-anio-rec {
+      display: block;
+      font-size: 9px;
+      color: var(--warning);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    /* Select nota inline */
+    .nota-sel {
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 3px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #fff;
+      cursor: pointer;
+      outline: none;
+      width: 54px;
+      text-align: center;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .nota-sel:focus { border-color: var(--primary); }
+    .nota-sel.baja  { color: var(--danger);  background: #fff5f5; }
+    .nota-sel.media { color: var(--warning); background: #fffbf0; }
+    .nota-sel.alta  { color: var(--success); background: #f0fff4; }
+
+    /* Botón guardar */
+    .btn-save-row {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 11px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .btn-save-row:hover { opacity: 0.85; }
+
+    /* Divisor entre secciones */
+    .sep { border-left: 2px solid var(--border) !important; }
+
+    /* Vista base — sin tabla */
+    .curso-empty {
+      text-align: center;
+      padding: 56px 24px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Móvil: cards */
+    .cards-movil { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+    .card-movil {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      border: 1.5px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .card-movil:active { border-color: var(--primary); }
+    .card-nombre { font-weight: 800; font-size: 14px; margin-bottom: 6px; }
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    /* ── FILA RESALTADA (búsqueda) ── */
+    .curso-tabla tbody tr.fila-match {
+      background: #fff9c4 !important;
+      outline: 2px solid #f9a825;
+      outline-offset: -1px;
+    }
+    .curso-tabla tbody tr.fila-match .nombre-link { color: #946800; }
+
+    /* ── PRINT ── */
+    @media print {
+      @page { size: A4 landscape; margin: 10mm; }
+      .sidebar, .bottom-nav, .top-bar,
+      .curso-controles, .curso-resumen,
+      .btn-save-row { display: none !important; }
+      .page { margin: 0 !important; width: 100% !important; }
+      .page-content { padding: 0 !important; }
+      .curso-wrap { padding: 0 !important; overflow: visible !important; }
+      .curso-tabla { font-size: 9px !important; min-width: unset !important; }
+      .curso-tabla td, .curso-tabla th { padding: 4px 5px !important; }
+      .nota-sel {
+        border: none !important; background: transparent !important;
+        font-size: 9px !important; width: auto !important;
+        -webkit-appearance: none; appearance: none; pointer-events: none;
+      }
+      #print-header { display: block !important; font-size: 13px; font-weight: 800; padding: 0 0 8px; }
+    }
+    #print-header { display: none; }
+  </style>
+</head>
+<body>
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="page">
+
+    <div class="top-bar">
+      <img class="nav-logo" src="img/escuela.png" alt="">
+      <div class="top-bar-title">Vista por Curso</div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Controles -->
+      <div class="curso-controles">
+        <select class="curso-select" id="sel-anio">
+          <option value="">Año</option>
+          <option>1</option><option>2</option><option>3</option>
+          <option>4</option><option>5</option><option>6</option><option>7</option>
+        </select>
+        <select class="curso-select" id="sel-div">
+          <option value="">Div.</option>
+          <option>1</option><option>2</option><option>3</option>
+        </select>
+
+        <div class="vista-toggles" id="vista-toggles" style="display:none">
+          <button class="vista-toggle" id="toggle-recursa" onclick="toggleVista('recursa')">
+            <img src="img/ciclo.png"> Recursadas
+          </button>
+          <button class="vista-toggle" id="toggle-intens" onclick="toggleVista('intens')">
+            <img src="img/multitud.png"> Intensificación
+          </button>
+        </div>
+
+        <button class="btn-imprimir-curso" id="btn-imprimir" onclick="window.print()">
+          <img src="img/enviar.png" style="width:15px;height:15px;object-fit:contain"> Imprimir
+        </button>
+      </div>
+
+      <!-- Buscador de alumno dentro del curso -->
+      <div id="curso-search-wrap" style="display:none;padding:0 16px 10px">
+        <div class="search-input-wrap">
+          <img src="img/buscar.png" alt="buscar" class="search-icon-img">
+          <input type="text" id="curso-search" placeholder="Buscar alumno en este curso...">
+        </div>
+      </div>
+
+      <!-- Resumen -->
+      <div class="curso-resumen" id="curso-resumen"></div>
+
+      <!-- Print header -->
+      <div id="print-header"></div>
+
+      <!-- Contenido principal -->
+      <div id="curso-cont">
+        <div class="curso-empty">
+          <img src="img/escuela.png" style="width:48px;opacity:0.18;display:block;margin:0 auto 14px">
+          <p>Seleccioná un año y división</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    requireAuth();
+    buildNav('curso');
+
+    const hoy    = new Date();
+    const mesKey = getMesKey(hoy);
+    const PERIODOS = [
+      { key:'04', label:'Mayo'   },
+      { key:'05', label:'Junio'  },
+      { key:'07', label:'Agosto' },
+      { key:'09', label:'Oct.'   },
+    ];
+
+    let alumnos  = [];
+    let vistaActiva = 'base'; // 'base' | 'recursa' | 'intens' | 'ambas'
+
+    document.getElementById('sel-anio').addEventListener('change', cargarCurso);
+    document.getElementById('sel-div').addEventListener('change',  cargarCurso);
+
+    async function cargarCurso() {
+      const anio = parseInt(document.getElementById('sel-anio').value);
+      const div  = parseInt(document.getElementById('sel-div').value);
+      if (!anio || !div) return;
+
+      document.getElementById('curso-cont').innerHTML = '<div class="loading">Cargando...</div>';
+      document.getElementById('curso-resumen').style.display = 'none';
+      document.getElementById('btn-imprimir').style.display  = 'none';
+      document.getElementById('vista-toggles').style.display = 'none';
+
+      const snap = await db.collection('alumnos')
+        .where('anio', '==', anio)
+        .where('division', '==', div)
+        .get();
+
+      alumnos = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => a.apellido.localeCompare(b.apellido));
+
+      document.getElementById('print-header').textContent =
+        `${anio}° año · División ${div} — ${new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'})}`;
+
+      // Solo mostrar toggles si hay alumnos con esa situación
+      const hayRec   = alumnos.some(a => a.materias?.some(m => m.recursa));
+      const hayIntens = alumnos.some(a => (a.intensifica?.length||0) > 0);
+      if (hayRec || hayIntens) {
+        document.getElementById('vista-toggles').style.display = 'flex';
+        document.getElementById('toggle-recursa').style.display = hayRec    ? 'flex' : 'none';
+        document.getElementById('toggle-intens').style.display  = hayIntens ? 'flex' : 'none';
+      }
+
+      vistaActiva = 'base';
+      document.getElementById('toggle-recursa')?.classList.remove('activo-recursa');
+      document.getElementById('toggle-intens')?.classList.remove('activo-intens');
+
+      renderResumen();
+      render();
+      document.getElementById('btn-imprimir').style.display = 'flex';
+      document.getElementById('curso-search-wrap').style.display = 'block';
+      document.getElementById('curso-search').value = '';
+    }
+
+    function toggleVista(tipo) {
+      const btnRec   = document.getElementById('toggle-recursa');
+      const btnInt   = document.getElementById('toggle-intens');
+
+      if (tipo === 'recursa') {
+        const estaActivo = btnRec.classList.contains('activo-recursa');
+        btnRec.classList.toggle('activo-recursa', !estaActivo);
+      } else {
+        const estaActivo = btnInt.classList.contains('activo-intens');
+        btnInt.classList.toggle('activo-intens', !estaActivo);
+      }
+
+      const recActivo = btnRec.classList.contains('activo-recursa');
+      const intActivo = btnInt.classList.contains('activo-intens');
+
+      if (recActivo && intActivo) vistaActiva = 'ambas';
+      else if (recActivo)         vistaActiva = 'recursa';
+      else if (intActivo)         vistaActiva = 'intens';
+      else                        vistaActiva = 'base';
+
+      render();
+      setTimeout(aplicarBusqueda, 50);
+    }
+
+    function renderResumen() {
+      const el = document.getElementById('curso-resumen');
+      if (!alumnos.length) { el.style.display = 'none'; return; }
+      const total    = alumnos.length;
+      const recursan = alumnos.filter(a => a.materias?.some(m => m.recursa)).length;
+      const intensif = alumnos.filter(a => (a.intensifica?.length||0) > 0).length;
+      const conA     = alumnos.filter(a => a.asistencia?.[mesKey]);
+      const criticos = conA.filter(a => (a.asistencia[mesKey].presentes/20)*100 < 60).length;
+      el.style.display = 'flex';
+      el.innerHTML = `
+        <div class="resumen-chip"><img src="img/escuela.png" style="width:13px;height:13px;object-fit:contain"><strong>${total}</strong> alumnos</div>
+        <div class="resumen-chip"><img src="img/ciclo.png" style="width:13px;height:13px;object-fit:contain"><strong>${recursan}</strong> recursan</div>
+        <div class="resumen-chip"><img src="img/multitud.png" style="width:13px;height:13px;object-fit:contain"><strong>${intensif}</strong> intensifican</div>
+        <div class="resumen-chip"><img src="img/critico.png" style="width:13px;height:13px;object-fit:contain"><strong>${criticos}</strong> asist. crítica</div>`;
+    }
+
+    function render() {
+      const cont = document.getElementById('curso-cont');
+      if (!alumnos.length) {
+        cont.innerHTML = '<div class="curso-empty"><p>No hay alumnos en este curso</p></div>';
+        return;
+      }
+      if (window.innerWidth < 1024) { renderMovil(cont); return; }
+      renderEscritorio(cont);
+      setTimeout(() => { colorearSelects(); aplicarBusqueda(); }, 30);
+    }
+
+    // ── MÓVIL ──
+    function renderMovil(cont) {
+      cont.innerHTML = `<div class="cards-movil">${alumnos.map(a => {
+        const asist = a.asistencia?.[mesKey];
+        const pct   = asist ? Math.round((asist.presentes/20)*100) : null;
+        const cls   = pct === null ? '' : pct >= 80 ? 'pct-alta' : pct >= 60 ? 'pct-media' : 'pct-baja';
+        const mNorm = a.materias?.filter(m => !m.recursa) || [];
+        const mRec  = a.materias?.filter(m => m.recursa)  || [];
+        const intens = a.intensifica || [];
+
+        const filasNotas = (lista, color) => lista.map(m =>
+          `<tr>
+            <td style="text-align:left;font-size:12px;font-weight:600;color:var(--text);padding:5px 4px;border-bottom:1px solid #f0f0f0">${m.nombre}</td>
+            <td style="font-size:11px;padding:5px 4px;border-bottom:1px solid #f0f0f0;color:${color}">${m.inf1 ?? '—'}</td>
+            <td style="font-size:12px;font-weight:700;padding:5px 4px;border-bottom:1px solid #f0f0f0">${m.nf1 ?? '—'}</td>
+            <td style="font-size:11px;padding:5px 4px;border-bottom:1px solid #f0f0f0;color:${color}">${m.inf2 ?? '—'}</td>
+            <td style="font-size:12px;font-weight:700;padding:5px 4px;border-bottom:1px solid #f0f0f0">${m.nf2 ?? '—'}</td>
+          </tr>`
+        ).join('');
+
+        const filasIntens = intens.map(i =>
+          `<tr>
+            <td style="text-align:left;font-size:12px;font-weight:600;color:var(--warning);padding:5px 4px;border-bottom:1px solid #f0f0f0">${i.materia} <span style="font-size:10px;font-weight:400">(${i.anio_origen}°)</span></td>
+            ${PERIODOS.map(p => `<td style="font-size:12px;font-weight:700;padding:5px 4px;border-bottom:1px solid #f0f0f0">${i.notas?.[p.key] ?? '—'}</td>`).join('')}
+          </tr>`
+        ).join('');
+
+        return `
+          <div class="card-movil" data-id="${a.id}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <a href="alumno.html?id=${a.id}" class="card-nombre" style="color:var(--primary);text-decoration:none">${a.apellido}, ${a.nombre}</a>
+              <span class="${cls}" style="font-size:13px;font-weight:800">${pct !== null ? pct+'%' : '—'}</span>
+            </div>
+
+            ${mNorm.length ? `
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Materias</div>
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;font-size:10px;color:var(--text-muted);padding:3px 4px">Materia</th>
+                <th style="font-size:10px;color:var(--text-muted);padding:3px 4px">Inf.1</th>
+                <th style="font-size:10px;color:var(--text-muted);padding:3px 4px">NF1</th>
+                <th style="font-size:10px;color:var(--text-muted);padding:3px 4px">Inf.2</th>
+                <th style="font-size:10px;color:var(--text-muted);padding:3px 4px">NF2</th>
+              </tr></thead>
+              <tbody>${filasNotas(mNorm, 'var(--primary)')}</tbody>
+            </table>` : ''}
+
+            ${mRec.length ? `
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--warning);margin:10px 0 4px">Recursadas</div>
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;font-size:10px;color:var(--text-muted);padding:3px 4px">Materia</th>
+                <th style="font-size:10px;color:var(--text-muted);padding:3px 4px">Inf.1</th>
+                <th style="font-size:10px;color:var(--text-muted);padding:3px 4px">NF1</th>
+                <th style="font-size:10px;color:var(--text-muted);padding:3px 4px">Inf.2</th>
+                <th style="font-size:10px;color:var(--text-muted);padding:3px 4px">NF2</th>
+              </tr></thead>
+              <tbody>${filasNotas(mRec, 'var(--warning)')}</tbody>
+            </table>` : ''}
+
+            ${intens.length ? `
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#946800;margin:10px 0 4px">Intensificación</div>
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;font-size:10px;color:var(--text-muted);padding:3px 4px">Materia</th>
+                ${PERIODOS.map(p => `<th style="font-size:10px;color:var(--text-muted);padding:3px 4px">${p.label}</th>`).join('')}
+              </tr></thead>
+              <tbody>${filasIntens}</tbody>
+            </table>` : ''}
+
+            <div style="margin-top:10px;text-align:right">
+              <a href="alumno.html?id=${a.id}" style="font-size:12px;color:var(--primary);font-weight:700;text-decoration:none">Ver perfil →</a>
+            </div>
+          </div>`;
+      }).join('')}</div>`;
+    }
+
+    // ── ESCRITORIO ──
+    function renderEscritorio(cont) {
+      if      (vistaActiva === 'base')    cont.innerHTML = tablaBase();
+      else if (vistaActiva === 'recursa') cont.innerHTML = tablaRecursa();
+      else if (vistaActiva === 'intens')  cont.innerHTML = tablaIntens();
+      else                                cont.innerHTML = tablaBase() + tablaRecursa() + tablaIntens();
+    }
+
+    // ── VISTA BASE: Nombre + Asistencia + Inf1 + NF1 + Inf2 + NF2 de cada materia ──
+    function tablaBase() {
+      return `<div class="curso-wrap"><table class="curso-tabla">
+        <thead>
+          <tr>
+            <th colspan="2" class="th-banner th-banner-azul" style="text-align:left">
+              <img src="img/escuela.png" style="width:12px;height:12px;object-fit:contain;vertical-align:middle;margin-right:4px"> Datos
+            </th>
+            ${MATERIAS.map((m,i) => `<th colspan="4" class="th-banner th-banner-azul sep">${m}</th>`).join('')}
+            <th class="th-banner th-banner-azul"></th>
+          </tr>
+          <tr class="th-campos">
+            <th style="text-align:left">Alumno</th>
+            <th>Asist.</th>
+            ${MATERIAS.map(m => `<th class="sep">Inf.1</th><th>NF1</th><th>Inf.2</th><th>NF2</th>`).join('')}
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${alumnos.map(a => {
+            const asist = a.asistencia?.[mesKey];
+            const pct   = asist ? Math.round((asist.presentes/20)*100) : null;
+            const cls   = pct === null ? '' : pct >= 80 ? 'pct-alta' : pct >= 60 ? 'pct-media' : 'pct-baja';
+            return `<tr data-id="${a.id}">
+              <td><a href="alumno.html?id=${a.id}" class="nombre-link">${a.apellido}, ${a.nombre}</a></td>
+              <td><span class="${cls}">${pct !== null ? pct+'%' : '—'}</span></td>
+              ${MATERIAS.map(mat => {
+                const m = a.materias?.find(x => x.nombre === mat);
+                if (m?.recursa) return `<td class="sep" colspan="4"><span class="tag-no-cursa">Recursa ${mat}</span></td>`;
+                return ['inf1','nf1','inf2','nf2'].map((c,i) => `<td class="${i===0?'sep':''}">${selectCampo(`b_${a.id}_${mat}_${c}`,c,m?.[c]??'')}</td>`).join('');
+              }).join('')}
+              <td><button class="btn-save-row" onclick="guardar('${a.id}','base')">Guardar</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>`;
+    }
+
+    // ── VISTA RECURSADAS: solo alumnos que recursan ──
+    function tablaRecursa() {
+      const lista = alumnos.filter(a => a.materias?.some(m => m.recursa));
+      if (!lista.length) return '<div class="curso-empty"><p>Ningún alumno recursa en este curso</p></div>';
+      return `<div class="curso-wrap" style="margin-top:${vistaActiva==='ambas'?'24px':'0'}"><table class="curso-tabla">
+        <thead>
+          <tr>
+            <th colspan="2" class="th-banner th-banner-naranja" style="text-align:left">
+              <img src="img/ciclo.png" style="width:12px;height:12px;object-fit:contain;vertical-align:middle;margin-right:4px"> Materias recursadas
+            </th>
+            ${MATERIAS.map(m => `<th colspan="4" class="th-banner th-banner-naranja sep th-mat-recursa">${m}</th>`).join('')}
+            <th class="th-banner th-banner-naranja"></th>
+          </tr>
+          <tr class="th-campos">
+            <th style="text-align:left">Alumno</th>
+            <th>Asist.</th>
+            ${MATERIAS.map(m => `<th class="sep">Inf.1</th><th>NF1</th><th>Inf.2</th><th>NF2</th>`).join('')}
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lista.map(a => {
+            const asist = a.asistencia?.[mesKey];
+            const pct   = asist ? Math.round((asist.presentes/20)*100) : null;
+            const cls   = pct === null ? '' : pct >= 80 ? 'pct-alta' : pct >= 60 ? 'pct-media' : 'pct-baja';
+            return `<tr data-id="${a.id}">
+              <td><a href="alumno.html?id=${a.id}" class="nombre-link">${a.apellido}, ${a.nombre}</a></td>
+              <td><span class="${cls}">${pct !== null ? pct+'%' : '—'}</span></td>
+              ${MATERIAS.map(mat => {
+                const m = a.materias?.find(x => x.nombre === mat && x.recursa);
+                if (!m) return `<td class="sep" colspan="4"><span class="celda-na">No recursa</span></td>`;
+                return ['inf1','nf1','inf2','nf2'].map((c,i) => {
+                  const pre = i===0 ? `<span class="tag-anio-rec">${m.anio}°</span>` : '';
+                  return `<td class="${i===0?'sep':''}" style="background:#fffbf5">${pre}${selectCampo(`r_${a.id}_${mat}_${c}`,c,m[c]??'')}</td>`;
+                }).join('');
+              }).join('')}
+              <td><button class="btn-save-row" onclick="guardar('${a.id}','recursa')">Guardar</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>`;
+    }
+
+    // ── VISTA INTENSIFICACIÓN: solo alumnos que intensifican ──
+    function tablaIntens() {
+      const lista = alumnos.filter(a => (a.intensifica?.length||0) > 0);
+      if (!lista.length) return '<div class="curso-empty"><p>Ningún alumno intensifica en este curso</p></div>';
+      return `<div class="curso-wrap" style="margin-top:${vistaActiva==='ambas'?'24px':'0'}"><table class="curso-tabla">
+        <thead>
+          <tr>
+            <th colspan="2" class="th-banner th-banner-amarillo" style="text-align:left">
+              <img src="img/multitud.png" style="width:12px;height:12px;object-fit:contain;vertical-align:middle;margin-right:4px"> Intensificación
+            </th>
+            <th colspan="${PERIODOS.length}" class="th-banner th-banner-amarillo sep">Notas por período</th>
+            <th class="th-banner th-banner-amarillo"></th>
+          </tr>
+          <tr class="th-campos">
+            <th style="text-align:left">Alumno</th>
+            <th>Asist.</th>
+            ${PERIODOS.map((p,i) => `<th class="${i===0?'sep':''}">${p.label}</th>`).join('')}
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lista.map(a => {
+            const asist = a.asistencia?.[mesKey];
+            const pct   = asist ? Math.round((asist.presentes/20)*100) : null;
+            const cls   = pct === null ? '' : pct >= 80 ? 'pct-alta' : pct >= 60 ? 'pct-media' : 'pct-baja';
+            const item  = a.intensifica[0];
+            return `<tr data-id="${a.id}">
+              <td>
+                <a href="alumno.html?id=${a.id}" class="nombre-link">${a.apellido}, ${a.nombre}</a>
+                <div style="font-size:10px;color:var(--warning);font-weight:700;margin-top:1px">${item.materia} · ${item.anio_origen}°</div>
+              </td>
+              <td><span class="${cls}">${pct !== null ? pct+'%' : '—'}</span></td>
+              ${PERIODOS.map((p,i) => `<td class="${i===0?'sep':''}" style="background:#fffef5">${selectNota(`i_${a.id}_${p.key}`, item.notas?.[p.key]??'')}</td>`).join('')}
+              <td><button class="btn-save-row" onclick="guardar('${a.id}','intens')">Guardar</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>`;
+    }
+
+    // ── COLOREAR SELECTS ──
+    function colorearSelects() {
+      document.querySelectorAll('.nota-sel').forEach(sel => {
+        actualizarColorSel(sel);
+        sel.addEventListener('change', function() { actualizarColorSel(this); });
+      });
+    }
+
+    function actualizarColorSel(sel) {
+      sel.classList.remove('baja','media','alta');
+      const v   = sel.value;
+      const tipo = sel.dataset.tipo;
+      if (!v) return;
+      const cls = tipo === 'inf' ? colorInforme(v) : colorNota(v);
+      if (cls) sel.classList.add(cls);
+    }
+
+    // ── GUARDAR FILA ──
+    async function guardar(id, vista) {
+      const a = alumnos.find(x => x.id === id);
+      if (!a) return;
+      const materias = JSON.parse(JSON.stringify(a.materias || []));
+      const intens   = JSON.parse(JSON.stringify(a.intensifica || []));
+
+      if (vista === 'base') {
+        MATERIAS.forEach(mat => {
+          const idx = materias.findIndex(m => m.nombre === mat && !m.recursa);
+          if (idx === -1) return;
+          ['inf1','nf1','inf2','nf2'].forEach(c => {
+            const el = document.getElementById(`b_${id}_${mat}_${c}`);
+            if (!el) return;
+            materias[idx][c] = el.value === '' ? null
+              : (c==='inf1'||c==='inf2') ? el.value : parseFloat(el.value);
+          });
+        });
+      }
+
+      if (vista === 'recursa') {
+        MATERIAS.forEach(mat => {
+          const idx = materias.findIndex(m => m.nombre === mat && m.recursa);
+          if (idx === -1) return;
+          ['inf1','nf1','inf2','nf2'].forEach(c => {
+            const el = document.getElementById(`r_${id}_${mat}_${c}`);
+            if (!el) return;
+            materias[idx][c] = el.value === '' ? null
+              : (c==='inf1'||c==='inf2') ? el.value : parseFloat(el.value);
+          });
+        });
+      }
+
+      if (vista === 'intens' && intens.length > 0) {
+        PERIODOS.forEach(p => {
+          const el = document.getElementById(`i_${id}_${p.key}`);
+          if (!el) return;
+          if (!intens[0].notas) intens[0].notas = {};
+          intens[0].notas[p.key] = el.value === '' ? null : parseFloat(el.value);
+        });
+      }
+
+      try {
+        showSaving();
+        await db.collection('alumnos').doc(id).update({ materias, intensifica: intens });
+        const idx = alumnos.findIndex(x => x.id === id);
+        alumnos[idx].materias    = materias;
+        alumnos[idx].intensifica = intens;
+        hideSaving();
+        showToast('Guardado ✓');
+      } catch(e) {
+        hideSaving();
+        showToast('Error al guardar');
+      }
+    }
+
+    window.addEventListener('resize', () => { if (alumnos.length) { render(); aplicarBusqueda(); } });
+
+    // ── BUSCADOR DENTRO DEL CURSO ──
+    document.getElementById('curso-search').addEventListener('input', aplicarBusqueda);
+
+    function aplicarBusqueda() {
+      const q = document.getElementById('curso-search').value.trim().toLowerCase();
+      if (window.innerWidth >= 1024) {
+        // PC: resaltar fila
+        document.querySelectorAll('.curso-tabla tbody tr[data-id]').forEach(tr => {
+          tr.classList.remove('fila-match');
+        });
+        if (!q) return;
+        let primera = null;
+        document.querySelectorAll('.curso-tabla tbody tr[data-id]').forEach(tr => {
+          const id = tr.dataset.id;
+          const a  = alumnos.find(x => x.id === id);
+          if (!a) return;
+          const nombre = `${a.apellido} ${a.nombre}`.toLowerCase();
+          if (nombre.includes(q)) {
+            tr.classList.add('fila-match');
+            if (!primera) primera = tr;
+          }
+        });
+        if (primera) primera.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        // Móvil: reordenar cards
+        const cont = document.querySelector('.cards-movil');
+        if (!cont) return;
+        const cards = Array.from(cont.children);
+        if (!q) {
+          // restaurar orden original (alfabético)
+          cards.sort((ca, cb) => {
+            const ia = alumnos.findIndex(x => x.id === ca.dataset.id);
+            const ib = alumnos.findIndex(x => x.id === cb.dataset.id);
+            return ia - ib;
+          });
+          cards.forEach(c => { c.style.order = ''; cont.appendChild(c); });
+          return;
+        }
+        cards.forEach(card => {
+          const id = card.dataset.id;
+          const a  = alumnos.find(x => x.id === id);
+          const nombre = a ? `${a.apellido} ${a.nombre}`.toLowerCase() : '';
+          card.style.order = nombre.includes(q) ? '-1' : '0';
+        });
+      }
+    }
+  </script>
+</body>
+</html>

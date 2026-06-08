@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Preceptora · Tablero</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="page">
+
+    <div class="top-bar">
+      <img class="nav-logo" src="img/calendario.png" alt="tablero">
+      <div class="top-bar-title">Tablero de anuncios </div>
+    </div>
+
+    <div class="page-content">
+
+      <div class="tablero-seccion">
+        <div class="tablero-seccion-titulo">
+          <img src="img/multitud.png" class="section-icon" alt="">
+          Períodos de intensificación
+        </div>
+        <div class="tablero-intens-grid" id="intens-grid"></div>
+      </div>
+
+      <!-- Ayuda -->
+      <div class="tablero-seccion">
+        <div class="tablero-seccion-titulo">
+          <img src="img/editar.png" class="section-icon" alt="" style="filter:invert(29%) sepia(98%) saturate(1500%) hue-rotate(190deg) brightness(90%)">
+          Ayuda y manual
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">
+          ¿Tenés dudas sobre cómo usar el sistema? El manual explica paso a paso cada sección con imágenes y ejemplos.
+        </p>
+        <a href="https://sebasbel2007.github.io/Manual-de-uso-Sistema-Preceptora/" target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--primary);color:#fff;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 3px 10px rgba(26,115,232,0.35)">
+          <img src="img/editar.png" style="width:16px;height:16px;object-fit:contain;filter:brightness(0) invert(1)"> Abrir manual de uso
+        </a>
+      </div>
+
+      <!-- Avisos -->
+      <div class="tablero-seccion">
+        <div class="tablero-seccion-titulo" style="justify-content:space-between">
+          <span style="display:flex;align-items:center;gap:8px">
+            <img src="img/critico.png" class="section-icon" alt="">
+            Avisos
+          </span>
+          <button class="btn-aviso-nuevo" id="btn-nuevo-aviso">
+            <img src="img/agregar.png" style="width:14px;height:14px;object-fit:contain;filter:brightness(0) invert(1)">
+            Nuevo
+          </button>
+        </div>
+
+        <!-- Formulario nuevo aviso (oculto por defecto) -->
+        <div id="form-aviso" style="display:none" class="aviso-form">
+          <textarea id="aviso-texto" placeholder="Escribí el aviso..." rows="3"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn-primary" style="flex:1;padding:10px" onclick="guardarAviso()">Guardar</button>
+            <button class="btn-secondary" style="flex:1;padding:10px" onclick="cancelarAviso()">Cancelar</button>
+          </div>
+        </div>
+
+        <div id="avisos-lista"></div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    requireAuth();
+    buildNav('tablero');
+
+    const hoy = new Date();
+
+    // ── Períodos de intensificación ──
+    const PERIODOS_INTENS = [
+      { label: 'Mayo',    mes: 4 },
+      { label: 'Junio',   mes: 5 },
+      { label: 'Agosto',  mes: 7 },
+      { label: 'Octubre', mes: 9 },
+    ];
+
+    function renderIntensGrid() {
+      const grid = document.getElementById('intens-grid');
+      const anio = hoy.getFullYear();
+      const mesActual = hoy.getMonth();
+
+      grid.innerHTML = PERIODOS_INTENS.map(p => {
+        const inicio = new Date(anio, p.mes, 1);
+        const fin    = new Date(anio, p.mes, 14);
+        const esPasado  = mesActual > p.mes || (mesActual === p.mes && hoy.getDate() > 14);
+        const esActual  = mesActual === p.mes && hoy.getDate() <= 14;
+        const esProximo = !esPasado && !esActual;
+
+        const estado    = esPasado ? 'pasado' : esActual ? 'activo' : 'proximo';
+        const etiqueta  = esPasado ? 'Finalizado' : esActual ? 'En curso' : 'Próximo';
+
+        return `
+          <div class="intens-periodo-card ${estado}">
+            <div class="intens-periodo-mes">${p.label}</div>
+            <div class="intens-periodo-fechas">${formatFecha(inicio)} — ${formatFecha(fin)}</div>
+            <span class="intens-periodo-badge">${etiqueta}</span>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Avisos ──
+    function toggleFormAviso() {
+      const f = document.getElementById('form-aviso');
+      f.style.display = f.style.display === 'none' ? 'block' : 'none';
+      if (f.style.display === 'block') document.getElementById('aviso-texto').focus();
+    }
+
+    function cancelarAviso() {
+      document.getElementById('form-aviso').style.display = 'none';
+      document.getElementById('aviso-texto').value = '';
+    }
+
+    async function guardarAviso() {
+      const texto = document.getElementById('aviso-texto').value.trim();
+      if (!texto) { showToast('Escribí algo primero'); return; }
+      await db.collection('avisos').add({ texto, fecha: new Date().toISOString() });
+      showToast('Aviso guardado');
+      cancelarAviso();
+      cargarAvisos();
+    }
+
+    async function eliminarAviso(id) {
+      await db.collection('avisos').doc(id).delete();
+      showToast('Aviso eliminado');
+      cargarAvisos();
+    }
+
+    async function cargarAvisos() {
+      const snap = await db.collection('avisos').orderBy('fecha', 'desc').get();
+      const lista = document.getElementById('avisos-lista');
+
+      if (snap.empty) {
+        lista.innerHTML = '<p class="tablero-empty">Sin avisos por ahora</p>';
+        return;
+      }
+
+      lista.innerHTML = snap.docs.map(doc => {
+        const d = doc.data();
+        const fecha = new Date(d.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+        return `
+          <div class="aviso-card">
+            <div class="aviso-contenido">
+              <div class="aviso-texto">${d.texto}</div>
+              <div class="aviso-fecha">${fecha}</div>
+            </div>
+            <button class="aviso-delete" onclick="eliminarAviso('${doc.id}')">
+              <img src="img/papelera.png" style="width:18px;height:18px;object-fit:contain">
+            </button>
+          </div>`;
+      }).join('');
+    }
+
+    document.getElementById('btn-nuevo-aviso').addEventListener('click', toggleFormAviso);
+
+    renderIntensGrid();
+    cargarAvisos();
+  </script>
+</body>
+</html>

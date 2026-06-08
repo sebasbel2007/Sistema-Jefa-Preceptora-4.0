@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Preceptora · Ingreso</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="auth-split">
+
+    <!-- PANEL IZQUIERDO: LOGIN -->
+    <div class="auth-page">
+      <img class="auth-logo" src="img/logo_escuela.png" alt="Logo escuela">
+      <h1 class="auth-title">Sistema Preceptoria</h1>
+      <p class="auth-subtitle">Gestión de alumnos</p>
+
+      <div class="auth-card">
+        <div class="form-group">
+          <label>Correo</label>
+          <input type="email" id="email" placeholder="correo@escuela.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn-primary" id="btn-login">INGRESAR</button>
+        <p class="error-msg" id="error-msg"></p>
+      </div>
+    </div>
+
+    <!-- PANEL DERECHO: HOME DEL COLEGIO (solo PC) -->
+    <div class="home-panel">
+      <header class="home-header">
+        <img src="img/logo_escuela.png" alt="Logo E.E.S.T N°5" class="home-header-logo">
+        <div>
+          <div class="home-header-nombre">E.E.S.T N°5</div>
+          <div class="home-header-sub">Escuela de Educación Secundaria Técnica</div>
+        </div>
+      </header>
+
+      <main class="home-main">
+        <div class="home-bienvenida">
+          <span class="home-badge">Sistema de Gestión Escolar</span>
+          <h2 class="home-titulo">Bienvenido al Sistema<br>de Preceptoría</h2>
+          <p class="home-desc">
+            Esta plataforma fue desarrollada para facilitar el trabajo diario de la jefa de preceptores y los preceptores,
+            centralizando la información de los alumnos en un solo lugar.
+          </p>
+        </div>
+
+        <div class="home-features">
+          <div class="home-feature-card">
+            <div class="home-feature-icon-wrap">
+              <img src="img/multitud.png" alt="Alumnos">
+            </div>
+            <div>
+              <div class="home-feature-title">Gestión de Alumnos</div>
+              <div class="home-feature-desc">Registrá, editá y consultá la información de cada alumno del curso.</div>
+            </div>
+          </div>
+          <div class="home-feature-card">
+            <div class="home-feature-icon-wrap">
+              <img src="img/calendario.png" alt="Asistencia">
+            </div>
+            <div>
+              <div class="home-feature-title">Control de Asistencia</div>
+              <div class="home-feature-desc">Seguimiento de presencias, ausencias y llegadas tarde en tiempo real.</div>
+            </div>
+          </div>
+          <div class="home-feature-card">
+            <div class="home-feature-icon-wrap">
+              <img src="img/subir notas.png" alt="Notas">
+            </div>
+            <div>
+              <div class="home-feature-title">Notas e Intensificación</div>
+              <div class="home-feature-desc">Registrá calificaciones y gestioná los períodos de intensificación.</div>
+            </div>
+          </div>
+          <div class="home-feature-card">
+            <div class="home-feature-icon-wrap">
+              <img src="img/escuela.png" alt="Tablero">
+            </div>
+            <div>
+              <div class="home-feature-title">Tablero de Avisos</div>
+              <div class="home-feature-desc">Publicá y consultá avisos importantes para el seguimiento del curso.</div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="home-footer">
+        <p>Sistema diseñado por: <strong>Beltran Sebastian &amp; Arrieta Guadalupe</strong> · 7° 2° Programación</p>
+        <p class="home-footer-escuela">E.E.S.T N°5 · Ciclo lectivo 2026</p>
+      </footer>
+    </div>
+
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
+  <script>
+    // Si ya está logueado, redirigir
+    auth.onAuthStateChanged(u => { if (u) window.location.href = 'alumnos.html'; });
+
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      const pass  = document.getElementById('pass').value;
+      const errEl = document.getElementById('error-msg');
+      errEl.textContent = '';
+
+      if (!email || !pass) { errEl.textContent = 'Completá todos los campos'; return; }
+
+      try {
+        await auth.signInWithEmailAndPassword(email, pass);
+        window.location.href = 'alumnos.html';
+      } catch (e) {
+        errEl.textContent = 'Correo o contraseña incorrectos';
+      }
+    });
+
+    // Enter para login
+    document.getElementById('pass').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btn-login').click();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Preceptora · Formulario</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="page">
+
+    <div class="top-bar">
+      <button class="back-btn" onclick="history.back()"><img src="img/flecha_volver.png" alt="volver" style="width:20px;height:20px;object-fit:contain"></button>
+      <div class="top-bar-title" id="form-titulo">Nuevo alumno</div>
+    </div>
+
+    <div class="page-content">
+
+    <div class="form-page">
+
+      <!-- Datos personales -->
+      <div class="form-section-title">Datos personales</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="f-nombre" placeholder="Ej: Lucas">
+        </div>
+        <div class="form-group">
+          <label>Apellido</label>
+          <input type="text" id="f-apellido" placeholder="Ej: García">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Año actual</label>
+          <select id="f-anio">
+            <option value="">—</option>
+            <option value="1">1°</option>
+            <option value="2">2°</option>
+            <option value="3">3°</option>
+            <option value="4">4°</option>
+            <option value="5">5°</option>
+            <option value="6">6°</option>
+            <option value="7">7°</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>División</label>
+          <select id="f-division">
+            <option value="">—</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Asistencia -->
+      <div class="form-section-title">Asistencia del mes (sobre 20 días)</div>
+      <div class="form-group">
+        <label>Inasistencias</label>
+        <input type="number" id="f-ausentes" placeholder="Ej: 3" min="0" max="20">
+      </div>
+
+      <!-- Materias e Intensificación lado a lado -->
+      <div class="form-dos-col">
+        <div>
+          <div class="form-section-title">Materias</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Marcá las que recursa.</p>
+          <div id="materias-cont"></div>
+        </div>
+        <div>
+          <div class="form-section-title"><img class="section-icon" src="img/multitud.png" alt=""> Intensificación</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Materias del año anterior (máx. 4).</p>
+          <div id="intens-cont"></div>
+          <button class="btn-secondary" id="btn-add-intens" type="button" style="margin-top:8px">
+            <img src="img/agregar.png" alt="" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:4px"> Agregar
+          </button>
+        </div>
+      </div>
+
+      <div style="height:16px"></div>
+      <button class="btn-primary" id="btn-guardar">GUARDAR ALUMNO</button>
+      <button class="btn-danger"  id="btn-eliminar" style="display:none"><img src="img/papelera.png" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:6px"> Eliminar alumno</button>
+
+    </div>
+    </div><!-- /page-content -->
+
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/formulario.js"></script>
+</body>
+</html>

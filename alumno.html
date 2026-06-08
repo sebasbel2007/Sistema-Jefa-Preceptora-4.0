@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Preceptora · Alumno</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="page">
+
+    <div class="top-bar">
+      <button class="back-btn" onclick="history.back()"><img src="img/flecha_volver.png" alt="volver" style="width:20px;height:20px;object-fit:contain"></button>
+      <div class="top-bar-title" id="perfil-nombre">Cargando...</div>
+    </div>
+
+    <div class="perfil-header">
+      <img class="perfil-avatar" src="img/foto_perfil.png" alt="foto">
+      <div class="perfil-nombre" id="perfil-nombre"></div>
+      <div class="perfil-anio"   id="perfil-anio"></div>
+    </div>
+
+    <div class="page-content" style="padding-top:20px">
+
+    <!-- Asistencia -->
+    <div class="info-section">
+      <div class="info-section-title">
+        <img class="section-icon" src="img/calendario.png" alt="">
+        Asistencia del mes
+        <button class="section-edit-btn" onclick="editarSeccion('asistencia')" title="Editar asistencia">
+          <img src="img/editar.png" style="width:14px;height:14px;object-fit:contain">
+        </button>
+      </div>
+      <div id="asist-cont"><div class="loading">Cargando...</div></div>
+    </div>
+
+    <!-- Notas materias actuales -->
+    <div class="info-section">
+      <div class="info-section-title">
+        <img class="section-icon" src="img/materias.png" alt="">
+        Materias del año actual
+      </div>
+      <div id="notas-cont"><div class="loading">Cargando...</div></div>
+    </div>
+
+    <!-- Materias recursadas -->
+    <div class="info-section" id="section-recursa">
+      <div class="info-section-title">
+        <img class="section-icon" src="img/ciclo.png" alt="">
+        Materias recursadas
+        <button class="section-edit-btn" onclick="abrirEditarRecursa()" title="Editar recursadas">
+          <img src="img/editar.png" style="width:14px;height:14px;object-fit:contain">
+        </button>
+      </div>
+      <div id="recursa-cont"></div>
+    </div>
+
+    <!-- Intensificación -->
+    <div class="info-section" id="section-intens">
+      <div class="info-section-title">
+        <img class="section-icon" src="img/multitud.png" alt="">
+        Intensificación
+        <button class="section-edit-btn" onclick="abrirEditarIntensificacion()" title="Editar intensificación">
+          <img src="img/editar.png" style="width:14px;height:14px;object-fit:contain">
+        </button>
+      </div>
+      <div id="intens-cont"></div>
+    </div>
+
+    <!-- Botón editar datos personales -->
+    <div style="padding: 0 16px 4px">
+      <button id="btn-editar" onclick="editarSeccion('datos_personales')" title="Editar datos personales" class="btn-primary" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:12px;font-weight:700;font-size:15px;background:var(--primary);color:#fff;border:none;cursor:pointer">
+        <img src="img/editar.png" alt="" style="width:20px;height:20px;object-fit:contain;filter:brightness(0) invert(1)"> Editar datos personales
+      </button>
+    </div>
+
+    <!-- Botón eliminar alumno -->
+    <div style="padding: 0 16px 24px">
+      <button onclick="eliminarAlumno()" title="Eliminar alumno" class="btn-danger" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer">
+        <img src="img/papelera.png" alt="" style="width:20px;height:20px;object-fit:contain;filter:invert(20%) sepia(90%) saturate(3000%) hue-rotate(340deg) brightness(70%)"> Eliminar alumno
+      </button>
+    </div>
+
+    </div><!-- /page-content -->
+
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/alumno.js"></script>
+</body>
+</html>

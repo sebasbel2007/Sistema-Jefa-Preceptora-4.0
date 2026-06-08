@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Preceptora · Subir Notas</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .curso-controls {
+      background: #fff;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      position: sticky;
+      top: 52px;
+      z-index: 90;
+    }
+    .curso-controls select {
+      flex: 1;
+      min-width: 130px;
+      padding: 8px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+    }
+    .curso-controls select:focus { border-color: var(--primary); }
+
+    .campo-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 10px 16px 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .campo-tabs::-webkit-scrollbar { display: none; }
+    .campo-tab {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .campo-tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    @media (min-width: 1024px) { .campo-tabs { display: none; } }
+
+    .notas-crud-wrap {
+      padding: 12px 16px 80px;
+      overflow-x: auto;
+    }
+    .notas-crud-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 320px;
+    }
+    .notas-crud-table thead th {
+      text-align: left;
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-muted);
+      border-bottom: 2px solid var(--border);
+      background: #fafafa;
+      white-space: nowrap;
+    }
+    .notas-crud-table thead th.col-nota { text-align: center; }
+    @media (max-width: 1023px) {
+      .col-nota { display: none; }
+      .col-nota.col-visible { display: table-cell; }
+    }
+    .notas-crud-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .notas-crud-table td.col-nota { text-align: center; }
+    .fila-pendiente { background: #fffde7; }
+    .fila-pendiente:hover { background: #fff9c4; }
+    .acciones-fila { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+    .btn-fila {
+      width: 30px; height: 30px;
+      border: none; border-radius: 8px;
+      cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: opacity 0.2s, transform 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-fila:disabled { opacity: 0.25; cursor: default; }
+    .btn-fila:not(:disabled):hover { transform: scale(1.1); }
+    .btn-fila:not(:disabled):active { transform: scale(0.93); }
+    .btn-ok     { background: #e8f5e9; color: var(--success); }
+    .btn-cancel { background: #ffebee; color: var(--danger); }
+    .alumno-sub-small { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    .barra-batch {
+      position: fixed;
+      bottom: var(--bottom-bar);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: var(--app-width);
+      background: #fff;
+      border-top: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 150;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+    }
+    @media (min-width: 1024px) {
+      .barra-batch {
+        bottom: 0; left: var(--sidebar-width);
+        transform: none; max-width: none;
+        width: calc(100% - var(--sidebar-width));
+      }
+    }
+    .barra-batch .btn-primary,
+    .barra-batch .btn-secondary { flex: 1; margin: 0; padding: 11px; font-size: 13px; }
+    .pendientes-badge {
+      background: var(--warning); color: #fff;
+      border-radius: 20px; font-size: 11px;
+      font-weight: 700; padding: 2px 7px; margin-left: 6px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="page">
+
+    <div class="top-bar">
+      <img class="nav-logo" src="img/materias.png" alt="notas">
+      <div class="top-bar-title">Subir Notas</div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Toggle modo -->
+      <div style="padding:12px 16px 0">
+        <div style="display:flex;background:#fff;border-radius:12px;border:1.5px solid var(--border);overflow:hidden">
+          <button id="tab-normal" class="tab-btn tab-active" onclick="setModo('normal')">Notas <span id="anio-tab"></span></button>
+          <button id="tab-intens" class="tab-btn" onclick="setModo('intensificacion')">Intensificación</button>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filters-row" style="padding-top:12px">
+        <select class="filter-select" id="filter-anio">
+          <option value="">Año lectivo</option>
+          <option value="1">1°</option>
+          <option value="2">2°</option>
+          <option value="3">3°</option>
+          <option value="4">4°</option>
+          <option value="5">5°</option>
+          <option value="6">6°</option>
+          <option value="7">7°</option>
+        </select>
+        <select class="filter-select" id="filter-division">
+          <option value="">División</option>
+          <option value="1">Div. 1</option>
+          <option value="2">Div. 2</option>
+          <option value="3">Div. 3</option>
+        </select>
+      </div>
+
+      <!-- Selector de materia (aparece tras filtrar) -->
+      <div id="materia-wrap" style="display:none" class="curso-controls">
+        <select id="sel-materia">
+          <option value="">Elegí una materia</option>
+          <option value="Literatura">Literatura</option>
+          <option value="Matemáticas">Matemáticas</option>
+          <option value="Física">Física</option>
+          <option value="Química">Química</option>
+          <option value="Historia">Historia</option>
+        </select>
+      </div>
+
+      <!-- Tabs campo móvil -->
+      <div class="campo-tabs" id="campo-tabs"></div>
+
+      <div id="resultado-count" style="padding:6px 16px 4px;font-size:12px;color:var(--text-muted)"></div>
+
+      <!-- Tabla de notas -->
+      <div class="notas-crud-wrap">
+        <div id="tabla-cont"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Barra batch -->
+  <div class="barra-batch" id="barra-batch" style="display:none">
+    <button class="btn-secondary" id="btn-cancelar-todo">Cancelar todo</button>
+    <button class="btn-primary" id="btn-guardar-todo">
+      Guardar todo <span class="pendientes-badge" id="badge-pendientes">0</span>
+    </button>
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    requireAuth();
+    buildNav('notas');
+
+    const anioActual = new Date().getFullYear();
+    document.getElementById('anio-tab').textContent = anioActual;
+
+    let modo = 'normal';
+    let todos = [];
+    let alumnos = [];
+    let snapshot = {};
+    let pendientes = new Set();
+    let campoMovil = '';
+    let materiaActual = '';
+
+    const CAMPOS_NORMAL = [
+      { key: 'inf1', label: 'Inf. 1' },
+      { key: 'nf1',  label: 'NF 1'   },
+      { key: 'inf2', label: 'Inf. 2' },
+      { key: 'nf2',  label: 'NF 2'   },
+    ];
+    const CAMPOS_INTENS = [
+      { key: '04', label: 'Mayo'    },
+      { key: '05', label: 'Junio'   },
+      { key: '07', label: 'Agosto'  },
+      { key: '09', label: 'Octubre' },
+    ];
+
+    let campos = CAMPOS_NORMAL;
+
+    db.collection('alumnos').get().then(snap => {
+      todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    });
+
+    function setModo(m) {
+      modo = m;
+      campos = m === 'intensificacion' ? CAMPOS_INTENS : CAMPOS_NORMAL;
+      campoMovil = campos[0].key;
+      document.getElementById('tab-normal').classList.toggle('tab-active', m === 'normal');
+      document.getElementById('tab-intens').classList.toggle('tab-active', m === 'intensificacion');
+      const divSel = document.getElementById('filter-division');
+      divSel.style.display = m === 'intensificacion' ? 'none' : '';
+      if (m === 'intensificacion') divSel.value = '';
+      resetTabla();
+      filtrar();
+    }
+
+    function filtrar() {
+      const anio = document.getElementById('filter-anio').value;
+      const div  = document.getElementById('filter-division').value;
+
+      if (!anio || (modo === 'normal' && !div)) {
+        document.getElementById('materia-wrap').style.display = 'none';
+        document.getElementById('tabla-cont').innerHTML = '';
+        document.getElementById('resultado-count').textContent = '';
+        return;
+      }
+
+      let lista = todos.filter(a => String(a.anio) === anio);
+      if (modo === 'normal') lista = lista.filter(a => String(a.division) === div);
+      if (modo === 'intensificacion') lista = lista.filter(a => a.intensifica?.length > 0);
+
+      alumnos = lista.sort((a, b) => a.apellido.localeCompare(b.apellido));
+
+      document.getElementById('resultado-count').textContent =
+        `${alumnos.length} alumno${alumnos.length !== 1 ? 's' : ''}`;
+      document.getElementById('materia-wrap').style.display = alumnos.length ? 'flex' : 'none';
+
+      // Si ya había materia seleccionada, recargar con nuevos alumnos
+      if (materiaActual) cambiarMateria(materiaActual);
+      else resetTabla();
+    }
+
+    function resetTabla() {
+      materiaActual = '';
+      pendientes.clear();
+      snapshot = {};
+      actualizarBarra();
+      document.getElementById('tabla-cont').innerHTML = '';
+      document.getElementById('campo-tabs').innerHTML = '';
+      if (document.getElementById('sel-materia')) document.getElementById('sel-materia').value = '';
+    }
+
+    document.getElementById('filter-anio').addEventListener('change', filtrar);
+    document.getElementById('filter-division').addEventListener('change', filtrar);
+
+    document.getElementById('sel-materia').addEventListener('change', e => {
+      const nueva = e.target.value;
+      if (pendientes.size > 0) {
+        mostrarAlertaCambioMateria(nueva);
+      } else {
+        cambiarMateria(nueva);
+      }
+    });
+
+    function cambiarMateria(materia) {
+      materiaActual = materia;
+      pendientes.clear();
+      snapshot = {};
+      actualizarBarra();
+      campoMovil = campos[0].key;
+
+      if (!materia) { document.getElementById('tabla-cont').innerHTML = ''; return; }
+
+      let lista = alumnos;
+      if (modo === 'intensificacion') {
+        lista = alumnos.filter(a => a.intensifica?.some(i => i.materia === materia));
+      }
+
+      lista.forEach(a => {
+        if (modo === 'intensificacion') {
+          const item = a.intensifica.find(i => i.materia === materia);
+          snapshot[a.id] = { ...(item?.notas || {}) };
+        } else {
+          const mat = a.materias?.find(m => m.nombre === materia);
+          snapshot[a.id] = mat
+            ? { inf1: mat.inf1 ?? null, nf1: mat.nf1 ?? null, inf2: mat.inf2 ?? null, nf2: mat.nf2 ?? null }
+            : { inf1: null, nf1: null, inf2: null, nf2: null };
+        }
+      });
+
+      renderCampoTabs();
+      renderTabla(lista);
+    }
+
+    function renderCampoTabs() {
+      document.getElementById('campo-tabs').innerHTML = campos.map(c =>
+        `<button class="campo-tab ${c.key === campoMovil ? 'active' : ''}"
+          onclick="setCampoMovil('${c.key}')">${c.label}</button>`
+      ).join('');
+    }
+
+    function setCampoMovil(key) {
+      campoMovil = key;
+      renderCampoTabs();
+      document.querySelectorAll('.col-nota').forEach(el => {
+        el.classList.toggle('col-visible', el.dataset.campo === key);
+      });
+    }
+
+    function renderTabla(lista) {
+      const cont = document.getElementById('tabla-cont');
+      if (!lista.length) {
+        cont.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><p>Sin alumnos</p></div>';
+        return;
+      }
+      const thCampos = campos.map(c =>
+        `<th class="col-nota ${c.key === campoMovil ? 'col-visible' : ''}" data-campo="${c.key}">${c.label}</th>`
+      ).join('');
+      cont.innerHTML = `
+        <table class="notas-crud-table">
+          <thead><tr><th>Alumno</th>${thCampos}<th></th></tr></thead>
+          <tbody>${lista.map(a => filaHTML(a)).join('')}</tbody>
+        </table>`;
+    }
+
+    function filaHTML(a) {
+      const vals = snapshot[a.id] || {};
+      const info = modo === 'intensificacion' ? (a.anio + '°-' + a.division) : '';
+      const matRec = modo === 'normal' ? a.materias?.find(m => m.nombre === materiaActual && m.recursa) : null;
+      const recInfo = matRec ? '📌 Recursando de ' + matRec.anio + '°' : '';
+      const tdCampos = campos.map(c => {
+        const v = vals[c.key];
+        const selHtml = selectCampo('sel-' + a.id + '-' + c.key, c.key, v);
+        const colorCls = colorClsSelect(c.key, v);
+        return '<td class="col-nota ' + (c.key === campoMovil ? 'col-visible' : '') + '" data-campo="' + c.key + '">'
+          + selHtml.replace('class="nota-select', 'class="nota-select ' + colorCls)
+            .replace('>', ' data-id="' + a.id + '" data-campo="' + c.key + '" onchange="onSelectChange(\'' + a.id + '\')">')
+          + '</td>';
+      }).join('');
+      return '<tr id="fila-' + a.id + '">'
+        + '<td><div style="font-weight:700;font-size:13px">' + a.apellido + ', ' + a.nombre + '</div>'
+        + (info ? '<div class="alumno-sub-small">' + info + '</div>' : '')
+        + (recInfo ? '<div class="alumno-sub-small" style="color:var(--warning);font-weight:700">' + recInfo + '</div>' : '') + '</td>'
+        + tdCampos
+        + '<td><div class="acciones-fila">'
+        + '<button class="btn-fila btn-ok" id="ok-' + a.id + '" disabled onclick="guardarFila(\'' + a.id + '\')">✓</button>'
+        + '<button class="btn-fila btn-cancel" id="cancel-' + a.id + '" disabled onclick="cancelarFila(\'' + a.id + '\')">✕</button>'
+        + '</div></td></tr>';
+    }
+
+    function colorClsSelect(campo, v) {
+      if (v === null || v === undefined || v === '') return '';
+      const cls = colorCampo(campo, v);
+      if (cls === 'baja')  return 'sel-baja';
+      if (cls === 'media') return 'sel-media';
+      if (cls === 'alta')  return 'sel-alta';
+      return '';
+    }
+
+    function onSelectChange(id) {
+      pendientes.add(id);
+      document.getElementById('fila-' + id)?.classList.add('fila-pendiente');
+      document.getElementById('ok-' + id).disabled     = false;
+      document.getElementById('cancel-' + id).disabled = false;
+      document.querySelectorAll('.nota-select[data-id="' + id + '"]').forEach(sel => {
+        sel.classList.remove('sel-baja', 'sel-media', 'sel-alta', 'modificado');
+        const v = sel.value;
+        if (v) {
+          const cls = sel.dataset.tipo === 'inf' ? colorInforme(v) : colorNota(parseFloat(v));
+          if (cls === 'baja')  sel.classList.add('sel-baja');
+          if (cls === 'media') sel.classList.add('sel-media');
+          if (cls === 'alta')  sel.classList.add('sel-alta');
+        }
+        const orig = snapshot[id]?.[sel.dataset.campo];
+        const cur  = v === '' ? null : (sel.dataset.tipo === 'inf' ? v : parseFloat(v));
+        if (String(cur) !== String(orig) && !(cur === null && (orig === null || orig === undefined)))
+          sel.classList.add('modificado');
+      });
+      actualizarBarra();
+    }
+
+    function actualizarBarra() {
+      document.getElementById('barra-batch').style.display = pendientes.size > 0 ? 'flex' : 'none';
+      document.getElementById('badge-pendientes').textContent = pendientes.size;
+    }
+
+    function buildUpdate(id) {
+      const a = alumnos.find(x => x.id === id);
+      if (modo === 'intensificacion') {
+        const intens = (a.intensifica || []).map(item => {
+          if (item.materia !== materiaActual) return item;
+          const notas = { ...(item.notas || {}) };
+          campos.forEach(c => {
+            const sel = document.querySelector('.nota-select[data-id="' + id + '"][data-campo="' + c.key + '"]');
+            if (!sel) return;
+            const v = parseFloat(sel.value);
+            if (!isNaN(v)) notas[c.key] = v; else delete notas[c.key];
+          });
+          return { ...item, notas };
+        });
+        return { intensifica: intens };
+      } else {
+        const materias = (a.materias || []).map(m => {
+          if (m.nombre !== materiaActual) return m;
+          const updated = { ...m };
+          campos.forEach(c => {
+            const sel = document.querySelector('.nota-select[data-id="' + id + '"][data-campo="' + c.key + '"]');
+            if (!sel) return;
+            if (c.key === 'inf1' || c.key === 'inf2') updated[c.key] = sel.value || null;
+            else { const v = parseFloat(sel.value); updated[c.key] = isNaN(v) ? null : v; }
+          });
+          return updated;
+        });
+        return { materias };
+      }
+    }
+
+    async function guardarFila(id) {
+      showSaving();
+      try {
+        await db.collection('alumnos').doc(id).update(buildUpdate(id));
+        document.querySelectorAll('.nota-select[data-id="' + id + '"]').forEach(sel => {
+          const v = sel.value === '' ? null : (sel.dataset.tipo === 'inf' ? sel.value : parseFloat(sel.value));
+          snapshot[id][sel.dataset.campo] = v;
+          sel.classList.remove('modificado');
+        });
+        limpiarFila(id);
+        hideSaving();
+        showToast('Nota guardada');
+      } catch(e) { hideSaving(); showToast('Error al guardar'); }
+    }
+
+    function cancelarFila(id) {
+      const orig = snapshot[id] || {};
+      document.querySelectorAll('.nota-select[data-id="' + id + '"]').forEach(sel => {
+        const v = orig[sel.dataset.campo];
+        sel.value = (v !== null && v !== undefined) ? String(v) : '';
+        sel.classList.remove('modificado', 'sel-baja', 'sel-media', 'sel-alta');
+        if (v !== null && v !== undefined && v !== '') {
+          const cls = sel.dataset.tipo === 'inf' ? colorInforme(v) : colorNota(parseFloat(v));
+          if (cls === 'baja')  sel.classList.add('sel-baja');
+          if (cls === 'media') sel.classList.add('sel-media');
+          if (cls === 'alta')  sel.classList.add('sel-alta');
+        }
+      });
+      limpiarFila(id);
+    }
+
+    function limpiarFila(id) {
+      pendientes.delete(id);
+      document.getElementById('fila-' + id)?.classList.remove('fila-pendiente');
+      document.getElementById('ok-' + id).disabled     = true;
+      document.getElementById('cancel-' + id).disabled = true;
+      actualizarBarra();
+    }
+
+    async function guardarTodo() {
+      if (!pendientes.size) return;
+      const ids = [...pendientes];
+      const batch = db.batch();
+      ids.forEach(id => batch.update(db.collection('alumnos').doc(id), buildUpdate(id)));
+      showSaving('Guardando todos los cambios...');
+      try {
+        await batch.commit();
+        ids.forEach(id => {
+          document.querySelectorAll('.nota-select[data-id="' + id + '"]').forEach(sel => {
+            const v = sel.value === '' ? null : (sel.dataset.tipo === 'inf' ? sel.value : parseFloat(sel.value));
+            snapshot[id][sel.dataset.campo] = v;
+            sel.classList.remove('modificado');
+          });
+          limpiarFila(id);
+        });
+        hideSaving();
+        showToast('Todos los cambios guardados');
+      } catch(e) { hideSaving(); showToast('Error al guardar'); }
+    }
+
+    function cancelarTodo() { [...pendientes].forEach(id => cancelarFila(id)); }
+
+    document.getElementById('btn-guardar-todo').addEventListener('click', guardarTodo);
+    document.getElementById('btn-cancelar-todo').addEventListener('click', cancelarTodo);
+
+    function mostrarAlertaCambioMateria(nueva) {
+      const overlay = document.createElement('div');
+      overlay.id = 'alerta-overlay';
+      overlay.innerHTML = `
+        <div class="edit-modal-overlay">
+          <div class="edit-modal" onclick="event.stopPropagation()" style="max-width:340px">
+            <div style="font-size:15px;font-weight:700;margin-bottom:8px">Cambios sin guardar</div>
+            <div style="font-size:14px;color:var(--text-muted);margin-bottom:20px">
+              Tenés ${pendientes.size} fila${pendientes.size !== 1 ? 's' : ''} con cambios sin guardar.
+            </div>
+            <div class="edit-modal-btns" style="flex-direction:column;gap:8px">
+              <button class="btn-primary" onclick="
+                document.getElementById('alerta-overlay').remove();
+                guardarTodo().then(() => cambiarMateria('${nueva}'));
+                document.getElementById('sel-materia').value='${nueva}';
+              ">Guardar todo y cambiar</button>
+              <button class="btn-secondary" onclick="
+                document.getElementById('alerta-overlay').remove();
+                cancelarTodo();
+                cambiarMateria('${nueva}');
+                document.getElementById('sel-materia').value='${nueva}';
+              ">Descartar y cambiar</button>
+              <button class="btn-secondary" onclick="
+                document.getElementById('sel-materia').value='${materiaActual}';
+                document.getElementById('alerta-overlay').remove();
+              ">Volver y seguir editando</button>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    window.addEventListener('beforeunload', e => {
+      if (pendientes.size > 0) { e.preventDefault(); e.returnValue = ''; }
+    });
+  </script>
+</body>
+</html>

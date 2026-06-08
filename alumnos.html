@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Preceptora · Alumnos</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="page">
+
+    <div class="top-bar">
+      <img class="nav-logo" src="img/buscar.png" alt="buscar">
+      <div class="top-bar-title">Alumnos</div>
+    </div>
+
+    <div class="page-content">
+
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <img src="img/buscar.png" alt="buscar" class="search-icon-img">
+        <input type="text" id="search-input" placeholder="Buscar por nombre o apellido...">
+      </div>
+    </div>
+
+    <div class="filters-row">
+      <select class="filter-select" id="filter-anio">
+        <option value="">Todos los años</option>
+        <option value="1">1°</option>
+        <option value="2">2°</option>
+        <option value="3">3°</option>
+        <option value="4">4°</option>
+        <option value="5">5°</option>
+        <option value="6">6°</option>
+        <option value="7">7°</option>
+      </select>
+      <select class="filter-select" id="filter-division">
+        <option value="">Todas las div.</option>
+        <option value="1">Div. 1</option>
+        <option value="2">Div. 2</option>
+        <option value="3">Div. 3</option>
+      </select>
+      <select class="filter-select" id="filter-estado">
+        <option value="">Todos</option>
+        <option value="recursa">Recursa</option>
+        <option value="regular">Regular</option>
+        <option value="intensifica">Intensificando</option>
+        <option value="asistencia_critica">Asistencia crítica</option>
+        <option value="notas_bajas">Notas bajas</option>
+      </select>
+    </div>
+
+    <div id="resultado-count"></div>
+
+    <div class="card-list" id="alumnos-lista">
+      <div class="loading">Cargando...</div>
+    </div>
+
+    </div><!-- /page-content -->
+
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    requireAuth();
+    buildNav('alumnos');
+
+    const hoy = new Date();
+    const mesKey = getMesKey(hoy);
+    let todos = [];
+
+    const params = new URLSearchParams(window.location.search);
+    const filtroInicial = params.get('estado') || '';
+
+    const esEscritorio = () => window.innerWidth >= 1024;
+
+    db.collection('alumnos').get().then(snap => {
+      todos = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.apellido.localeCompare(b.apellido));
+      if (filtroInicial) document.getElementById('filter-estado').value = filtroInicial;
+      filtrar();
+    });
+
+    function renderLista(lista) {
+      const cont = document.getElementById('alumnos-lista');
+      document.getElementById('resultado-count').textContent = `${lista.length} alumno${lista.length !== 1 ? 's' : ''}`;
+
+      if (lista.length === 0) {
+        cont.innerHTML = `<div class="empty-state"><div class="empty-icon">&#128269;</div><p>Sin resultados</p></div>`;
+        return;
+      }
+
+      if (esEscritorio()) {
+        renderTabla(lista, cont);
+      } else {
+        renderCards(lista, cont);
+      }
+    }
+
+    function renderCards(lista, cont) {
+      cont.className = 'card-list';
+      cont.innerHTML = lista.map(a => {
+        const asist = a.asistencia?.[mesKey];
+        const pct = asist ? Math.round((asist.presentes / 20) * 100) : null;
+        const asistTxt = asist ? `${asist.presentes}/20 · ${pct}%` : '—';
+        const asistIcon = pct === null ? '' : pct >= 80 ? '✅' : pct >= 60 ? '⚠️' : '<img src="img/critico.png" alt="" style="width:14px;height:14px;object-fit:contain;vertical-align:middle">';
+        const recursa = a.materias?.some(m => m.recursa);
+        const intens  = (a.intensifica?.length || 0) > 0;
+        return `
+          <div class="alumno-card" onclick="window.location.href='alumno.html?id=${a.id}'" style="cursor:pointer">
+            <img class="alumno-avatar" src="img/foto_perfil.png" alt="foto">
+            <div class="alumno-info">
+              <div class="alumno-nombre">${a.nombre}, ${a.apellido}</div>
+              <div class="alumno-sub">${a.anio}°-${a.division}</div>
+              <div class="alumno-sub">Asist: ${asistTxt} ${asistIcon}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+                ${recursa ? '<span class="badge badge-danger">Recursa</span>' : '<span class="badge badge-success">Regular</span>'}
+                ${intens ? '<span class="badge badge-warning">Intensifica</span>' : ''}
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="card-action-btn card-action-export" onclick="event.stopPropagation();exportarPDF('${a.id}')" title="Compartir / Exportar PDF">
+                  <img src="img/enviar.png" style="width:17px;height:17px;object-fit:contain">
+                </button>
+                <button class="card-action-btn card-action-delete" onclick="event.stopPropagation();eliminarAlumno('${a.id}','${a.nombre} ${a.apellido}')" title="Eliminar alumno">
+                  <img src="img/papelera.png" style="width:17px;height:17px;object-fit:contain">
+                </button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderTabla(lista, cont) {
+      cont.className = '';
+      cont.innerHTML = `
+        <table class="alumnos-tabla">
+          <thead>
+            <tr>
+              <th>Alumno</th>
+              <th>Año / Div.</th>
+              <th>Asistencia</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lista.map(a => {
+              const asist = a.asistencia?.[mesKey];
+              const pct = asist ? Math.round((asist.presentes / 20) * 100) : null;
+              const asistTxt = pct !== null ? `${asist.presentes}/20` : '—';
+              const pctTxt = pct !== null ? `${pct}%` : '';
+              const pctCls = pct === null ? '' : pct >= 80 ? 'alta' : pct >= 60 ? 'media' : 'baja';
+              const recursa = a.materias?.some(m => m.recursa);
+              const intens  = (a.intensifica?.length || 0) > 0;
+              return `
+                <tr class="fila-alumno" data-id="${a.id}">
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <img src="img/foto_perfil.png" style="width:32px;height:32px;border-radius:50%;object-fit:cover">
+                      <span style="font-weight:600">${a.nombre}, ${a.apellido}</span>
+                    </div>
+                  </td>
+                  <td>${a.anio}° · Div. ${a.division}</td>
+                  <td>
+                    <span style="font-size:13px">${asistTxt}</span>
+                    ${pctTxt ? `<span class="nota-val ${pctCls}" style="margin-left:6px;font-size:13px">${pctTxt}</span>` : ''}
+                  </td>
+                  <td>
+                    <div style="display:flex;gap:4px;flex-wrap:wrap">
+                      ${recursa ? '<span class="badge badge-danger">Recursa</span>' : '<span class="badge badge-success">Regular</span>'}
+                      ${intens ? '<span class="badge badge-warning">Intensifica</span>' : ''}
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display:flex;gap:6px;justify-content:flex-end">
+                      <button class="tabla-btn" style="background:#e8f5e9" onclick="window.location.href='alumno.html?id=${a.id}'" title="Ver alumno">
+                        <img src="img/buscar.png" style="width:15px;height:15px;object-fit:contain">
+                      </button>
+                      <button class="tabla-btn tabla-btn-export" onclick="exportarPDF('${a.id}')" title="Compartir / Exportar PDF">
+                        <img src="img/enviar.png" style="width:15px;height:15px;object-fit:contain">
+                      </button>
+                      <button class="tabla-btn tabla-btn-delete" onclick="eliminarAlumno('${a.id}','${a.nombre} ${a.apellido}')" title="Eliminar alumno">
+                        <img src="img/papelera.png" style="width:15px;height:15px;object-fit:contain">
+                      </button>
+                    </div>
+                  </td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    async function eliminarAlumno(id, nombre) {
+      showConfirm(`¿Eliminás a ${nombre}?`, async () => {
+        await db.collection('alumnos').doc(id).delete();
+        todos = todos.filter(a => a.id !== id);
+        showToast('Alumno eliminado');
+        filtrar();
+      });
+    }
+
+    function exportarPDF(id) {
+      const a = todos.find(x => x.id === id);
+      if (!a) return;
+      generarPDF(a);
+    }
+
+    function generarPDF(a) {
+      const asist = a.asistencia?.[mesKey];
+      const pct = asist ? Math.round((asist.presentes / 20) * 100) : null;
+      const materiasActuales = a.materias?.filter(m => !m.recursa) || [];
+      const materiasRec = a.materias?.filter(m => m.recursa) || [];
+      const intens = a.intensifica || [];
+
+      const filaNotas = (m) =>
+        `<tr><td>${m.nombre}</td><td>${m.inf1 ?? '-'}</td><td>${m.nf1 ?? '-'}</td><td>${m.inf2 ?? '-'}</td><td>${m.nf2 ?? '-'}</td></tr>`;
+
+      const html = `
+        <html><head><meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; padding: 32px; color: #1c1c1e; }
+          h1 { font-size: 22px; margin-bottom: 4px; }
+          .sub { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+          h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin: 20px 0 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          th { text-align: left; padding: 6px 8px; background: #f4f6f9; font-size: 11px; }
+          td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; }
+          .asist { font-size: 18px; font-weight: 800; color: ${pct >= 80 ? '#2e7d32' : pct >= 60 ? '#f57c00' : '#e53935'}; }
+        </style></head><body>
+        <h1>${a.nombre}, ${a.apellido}</h1>
+        <div class="sub">${a.anio}° año · División ${a.division}</div>
+        <h2>Asistencia del mes</h2>
+        ${asist ? `<span class="asist">${pct}%</span> &nbsp; ${asist.presentes} presentes · ${asist.ausentes} ausentes` : 'Sin datos'}
+        ${materiasActuales.length ? `
+          <h2>Materias del año actual</h2>
+          <table><tr><th>Materia</th><th>Inf.1</th><th>NF1</th><th>Inf.2</th><th>NF2</th></tr>
+          ${materiasActuales.map(filaNotas).join('')}</table>` : ''}
+        ${materiasRec.length ? `
+          <h2>Materias recursadas</h2>
+          <table><tr><th>Materia</th><th>Inf.1</th><th>NF1</th><th>Inf.2</th><th>NF2</th></tr>
+          ${materiasRec.map(filaNotas).join('')}</table>` : ''}
+        ${intens.length ? `
+          <h2>Intensificación</h2>
+          <table><tr><th>Materia</th><th>Año</th><th>Mayo</th><th>Junio</th><th>Agosto</th><th>Oct.</th></tr>
+          ${intens.map(i => `<tr><td>${i.materia}</td><td>${i.anio_origen}°</td>
+            <td>${i.notas?.['04'] ?? '-'}</td><td>${i.notas?.['05'] ?? '-'}</td>
+            <td>${i.notas?.['07'] ?? '-'}</td><td>${i.notas?.['09'] ?? '-'}</td></tr>`).join('')}
+          </table>` : ''}
+        </body></html>`;
+
+      const win = window.open('', '_blank');
+      win.document.write(html);
+      win.document.close();
+      win.print();
+    }
+
+    function filtrar() {
+      const q   = document.getElementById('search-input').value.toLowerCase();
+      const anio = document.getElementById('filter-anio').value;
+      const div  = document.getElementById('filter-division').value;
+      const est  = document.getElementById('filter-estado').value;
+
+      const lista = todos.filter(a => {
+        const nombre = `${a.nombre} ${a.apellido}`.toLowerCase();
+        if (q && !nombre.includes(q)) return false;
+        if (anio && String(a.anio) !== anio) return false;
+        if (div  && String(a.division) !== div) return false;
+        const recursa = a.materias?.some(m => m.recursa);
+        const asist = a.asistencia?.[mesKey];
+        const pctAsist = asist ? Math.round((asist.presentes / 20) * 100) : null;
+        if (est === 'recursa'            && !recursa) return false;
+        if (est === 'regular'            && recursa)  return false;
+        if (est === 'intensifica'        && !(a.intensifica?.length > 0)) return false;
+        if (est === 'asistencia_critica' && !(pctAsist !== null && pctAsist < 60)) return false;
+        if (est === 'notas_bajas'        && !a.materias?.some(m => !m.recursa && ((m.nf1 !== null && m.nf1 < 6) || (m.nf2 !== null && m.nf2 < 6)))) return false;
+        return true;
+      });
+
+      renderLista(lista);
+    }
+
+    document.getElementById('search-input').addEventListener('input', filtrar);
+    document.getElementById('filter-anio').addEventListener('change', filtrar);
+    document.getElementById('filter-division').addEventListener('change', filtrar);
+    document.getElementById('filter-estado').addEventListener('change', filtrar);
+    window.addEventListener('resize', filtrar);
+  </script>
+</body>
+</html>
